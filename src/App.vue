@@ -54,12 +54,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { SERVICE_META, CATEGORIES } from './data/services.js'
 
 const health = ref(null)
 const error = ref(null)
 const activeCategory = ref(null)
+let pollInterval = null
 
 const ENDPOINTS = [
   { path: '/_ministack/health', name: 'MiniStack' },
@@ -67,17 +68,28 @@ const ENDPOINTS = [
   { path: '/_robotocore/health', name: 'RobotoCore' },
 ]
 
-onMounted(async () => {
+async function fetchHealth() {
   for (const ep of ENDPOINTS) {
     try {
       const resp = await fetch(ep.path)
       if (resp.ok) {
         health.value = await resp.json()
+        error.value = null
         return
       }
     } catch {}
   }
+  health.value = null
   error.value = 'No local stack running on port 4566/4569'
+}
+
+onMounted(() => {
+  fetchHealth()
+  pollInterval = setInterval(fetchHealth, 5000)
+})
+
+onUnmounted(() => {
+  clearInterval(pollInterval)
 })
 
 function getMeta(id) {
