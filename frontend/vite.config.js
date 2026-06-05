@@ -6,9 +6,7 @@ export default defineConfig({
   plugins: [vue(), tailwindcss()],
   server: {
     proxy: {
-      '/_ministack': 'http://localhost:4566',
-      '/_localstack': 'http://localhost:4566',
-      '/_robotocore': 'http://localhost:4569',
+      '/api': 'http://localhost:8000',
     }
   }
 })
