@@ -1,0 +1,5 @@
+services:
+  robotocore:
+    image: jackdanger/robotocore:latest
+    ports:
+      - "4569:4566"

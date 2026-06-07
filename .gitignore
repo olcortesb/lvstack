@@ -137,6 +137,11 @@ dist
 !.yarn/sdks
 !.yarn/versions
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
 # Vite files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*

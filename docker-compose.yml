@@ -1,0 +1,36 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - MINISTACK_HOST=ministack
+      - FLOCI_HOST=floci
+      - ROBOTOCORE_HOST=robotocore
+
+  ministack:
+    image: ministackorg/ministack:latest
+    ports:
+      - "4566:4566"
+
+  floci:
+    image: floci/floci:latest
+    ports:
+      - "4567:4566"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+
+  robotocore:
+    image: jackdanger/robotocore:latest
+    ports:
+      - "4569:4566"

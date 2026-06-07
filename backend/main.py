@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import boto3
+import os
 
 app = FastAPI(title="lvstack API")
 
@@ -12,17 +13,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MINISTACK_HOST = os.environ.get("MINISTACK_HOST", "localhost")
+FLOCI_HOST = os.environ.get("FLOCI_HOST", "localhost")
+ROBOTOCORE_HOST = os.environ.get("ROBOTOCORE_HOST", "localhost")
+
 STACKS = [
-    {"id": "ministack", "name": "MiniStack", "port": 4566, "health_path": "/_ministack/health"},
-    {"id": "floci", "name": "Floci", "port": 4567, "health_path": "/_localstack/health"},
-    {"id": "robotocore", "name": "RobotoCore", "port": 4569, "health_path": "/_robotocore/health"},
+    {"id": "ministack", "name": "MiniStack", "host": MINISTACK_HOST, "port": 4566, "health_path": "/_ministack/health"},
+    {"id": "floci", "name": "Floci", "host": FLOCI_HOST, "port": 4566, "health_path": "/_localstack/health"},
+    {"id": "robotocore", "name": "RobotoCore", "host": ROBOTOCORE_HOST, "port": 4566, "health_path": "/_robotocore/health"},
 ]
 
 
-def _get_s3_client(port):
+def _get_s3_client(stack):
     return boto3.client(
         "s3",
-        endpoint_url=f"http://localhost:{port}",
+        endpoint_url=f"http://{stack['host']}:{stack['port']}",
         aws_access_key_id="test",
         aws_secret_access_key="test",
         region_name="us-east-1",
@@ -30,7 +35,7 @@ def _get_s3_client(port):
 
 
 async def _fetch_health(stack):
-    url = f"http://localhost:{stack['port']}{stack['health_path']}"
+    url = f"http://{stack['host']}:{stack['port']}{stack['health_path']}"
     try:
         async with httpx.AsyncClient(timeout=3) as client:
             resp = await client.get(url)
@@ -84,7 +89,7 @@ async def get_s3_buckets(stack_id: str):
     if not stack:
         return {"error": "Stack not found"}
     try:
-        s3 = _get_s3_client(stack["port"])
+        s3 = _get_s3_client(stack)
         resp = s3.list_buckets()
         buckets = [{"name": b["Name"], "created": b["CreationDate"].isoformat()} for b in resp.get("Buckets", [])]
         return {"buckets": buckets}

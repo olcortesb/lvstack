@@ -47,13 +47,15 @@
           <div
             v-for="[id, status] in filteredServices"
             :key="id"
-            class="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition-colors"
+            @click="selectService(id)"
+            class="bg-gray-900 border rounded-xl p-4 transition-colors cursor-pointer"
+            :class="activeService === id ? 'border-white' : 'border-gray-800 hover:border-gray-600'"
           >
             <div class="text-2xl mb-2">{{ getMeta(id).icon }}</div>
             <div class="text-sm font-medium text-gray-200">{{ getMeta(id).name }}</div>
             <div class="flex items-center gap-1 mt-2">
-              <span class="w-2 h-2 rounded-full" :class="status === 'available' || status === 'running' ? 'bg-green-500' : 'bg-yellow-500'"></span>
-              <span class="text-xs text-gray-500">{{ typeof status === 'object' ? status.status : status }}</span>
+              <span class="w-2 h-2 rounded-full" :class="getStatus(status) === 'available' || getStatus(status) === 'running' ? 'bg-green-500' : 'bg-yellow-500'"></span>
+              <span class="text-xs text-gray-500">{{ getStatus(status) }}</span>
             </div>
           </div>
         </div>
@@ -65,6 +67,31 @@
 
       <div v-else class="text-center text-gray-500 py-20">
         Select a stack above to view services
+      </div>
+
+      <!-- Service detail panel -->
+      <div v-if="activeService && serviceData" class="mt-8 bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-semibold text-lg">{{ getMeta(activeService).icon }} {{ getMeta(activeService).name }}</h2>
+          <button @click="activeService = null; serviceData = null" class="text-gray-500 hover:text-white text-sm">✕ Close</button>
+        </div>
+
+        <!-- S3 Buckets -->
+        <div v-if="activeService === 's3'">
+          <div v-if="serviceData.buckets && serviceData.buckets.length" class="space-y-2">
+            <div v-for="bucket in serviceData.buckets" :key="bucket.name" class="flex justify-between items-center bg-gray-800 rounded-lg px-4 py-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🪣</span>
+                <span class="text-sm font-medium">{{ bucket.name }}</span>
+              </div>
+              <span class="text-xs text-gray-500">{{ formatDate(bucket.created) }}</span>
+            </div>
+          </div>
+          <div v-else class="text-gray-500 text-sm">No buckets found</div>
+        </div>
+
+        <!-- Other services -->
+        <div v-else class="text-gray-500 text-sm">Service inspection not yet available</div>
       </div>
     </main>
   </div>
@@ -78,6 +105,8 @@ const stacks = ref([])
 const activeStack = ref(null)
 const services = ref(null)
 const activeCategory = ref(null)
+const activeService = ref(null)
+const serviceData = ref(null)
 let pollInterval = null
 
 async function fetchStacks() {
@@ -100,6 +129,40 @@ async function selectStack(stack) {
   } catch {
     services.value = null
   }
+}
+
+async function selectService(id) {
+  if (activeService.value === id) {
+    activeService.value = null
+    serviceData.value = null
+    return
+  }
+  activeService.value = id
+  serviceData.value = null
+
+  const stackId = activeStack.value.id
+  const endpoints = { s3: `/api/stacks/${stackId}/s3/buckets` }
+  const url = endpoints[id]
+  if (!url) {
+    serviceData.value = { unsupported: true }
+    return
+  }
+  try {
+    const resp = await fetch(url)
+    if (resp.ok) serviceData.value = await resp.json()
+  } catch {
+    serviceData.value = { error: 'Failed to fetch' }
+  }
+}
+
+function formatDate(iso) {
+  if (!iso) return ''
+  return iso.split('T')[0]
+}
+
+function getStatus(status) {
+  if (typeof status === 'object') return status.status || 'unknown'
+  return status
 }
 
 function getMeta(id) {
