@@ -51,7 +51,7 @@
             class="bg-gray-900 border rounded-xl p-4 transition-colors cursor-pointer"
             :class="activeService === id ? 'border-white' : 'border-gray-800 hover:border-gray-600'"
           >
-            <div class="text-2xl mb-2">{{ getMeta(id).icon }}</div>
+            <img :src="getMeta(id).icon" :alt="getMeta(id).name" class="w-8 h-8 mb-2" />
             <div class="text-sm font-medium text-gray-200">{{ getMeta(id).name }}</div>
             <div class="flex items-center gap-1 mt-2">
               <span class="w-2 h-2 rounded-full" :class="getStatus(status) === 'available' || getStatus(status) === 'running' ? 'bg-green-500' : 'bg-yellow-500'"></span>
@@ -166,7 +166,7 @@ function getStatus(status) {
 }
 
 function getMeta(id) {
-  return SERVICE_META[id] || { name: id, icon: '☁️', category: 'Other' }
+  return SERVICE_META[id] || { name: id, icon: '/icons/Arch_General-Icons_48.svg', category: 'Other' }
 }
 
 function countByCategory(cat) {
